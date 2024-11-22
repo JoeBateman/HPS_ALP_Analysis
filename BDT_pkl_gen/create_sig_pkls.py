@@ -4,7 +4,7 @@ for use in create_pkls_nb.ipynb. The goal is to create a pkl that is correctly f
 use in Loading_pkls_test.ipynb, which can then be used throughout the main analysis.
 """
 
-import uproot as uproot 
+import uproot 
 import numpy as np
 import awkward as ak
 import pandas as pd
@@ -38,7 +38,8 @@ Main_variables = [
     'slpdg', # BDT variable
     'trk_score_v', # Most basic cut to separate showers from tracks
     'topological_score', # This might be important later I think
-    'weightSplineTimesTune', # To weight each event
+    
+    # 'weightSplineTimesTune', # To weight each event
     'ppfx_cv', # To weight each Event
     'n_showers_contained_MCStool', # Most basic cut used in selecting 2 shr and 1 shr
     'DeltaMed', # Imp variable for KDAR 2shr 
@@ -83,7 +84,7 @@ mc_variables = [
 ]
 
 weights_variables = [
-    'weightsGenie', # Xsec uncertainty
+    # 'weightsGenie', # Xsec uncertainty
     'weightsReint', # Reint uncertainty
     'weightsPPFX' # Flux uncertainty
     ]
