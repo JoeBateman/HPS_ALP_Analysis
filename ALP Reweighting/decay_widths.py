@@ -4,7 +4,8 @@ from scipy import constants
 
 # Constants
 # hbar = 4.135667696e-21 # MeV⋅Hz−1
-hbar = 6.58211899e-22 # MeV⋅s
+hbar = constants.physical_constants["Planck constant over 2 pi in eV s"][0] # ev⋅s
+hbar = hbar / (1e6) # MeV⋅s
 
 m_e = Particle.from_pdgid(11).mass # +- 0.00000000015 MeV, https://pdglive.lbl.gov/Particle.action?node=S003
 m_mu = Particle.from_pdgid(13).mass # MeV
