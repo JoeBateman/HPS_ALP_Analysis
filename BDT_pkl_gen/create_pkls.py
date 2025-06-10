@@ -4,7 +4,7 @@ for use in create_pkls_nb.ipynb. The goal is to create a pkl that is correctly f
 use in Loading_pkls_test.ipynb, which can then be used throughout the main analysis.
 """
 
-import uproot as uproot 
+import uproot3 as uproot 
 import numpy as np
 import awkward as ak
 import pandas as pd
@@ -38,8 +38,6 @@ Main_variables = [
     'slpdg', # BDT variable
     'trk_score_v', # Most basic cut to separate showers from tracks
     'topological_score', # This might be important later I think
-    'weightSplineTimesTune', # To weight each event
-    'ppfx_cv', # To weight each Event
     'n_showers_contained_MCStool', # Most basic cut used in selecting 2 shr and 1 shr
     'DeltaMed', # Imp variable for KDAR 2shr 
     'NeutrinoEnergy2', # The most important variable in training the BDT.
@@ -71,8 +69,14 @@ Main_variables = [
     'shr_start_z_v', # Used in calculating distance_bw_two_particles ()
     'shr_dedx_y_v', # Used in calculating the energy asymmetry 
     'nu_e', # To calculate theta_nu
-    'true_nu_pz' # To calculate theta_nu
     ]
+
+truth_variables = ['true_nu_vtx_x',
+                   'true_nu_vtx_y',
+                   'true_nu_vtx_z',
+                   'true_nu_pz',
+                   ] # To calculate theta_nu
+
 
 # Separate variables as they are not compatible with flatten=True
 mc_variables = [
@@ -81,6 +85,12 @@ mc_variables = [
     'mc_pz',
     'mc_pdg'
 ]
+
+tune_variables = [
+    'weightSplineTimesTune', # # Product of genie tune weights and spline weights
+    'weightTune', # Genie tune weights
+    'ppfx_cv', # Flux weights
+    ]
 
 weights_variables = [
     'weightsGenie', # Xsec uncertainty
@@ -113,9 +123,9 @@ def weightTuneBool (df_cut):
 
     df_cut['weightSplineTimesTune'] = df_cut['weightSplineTimesTune'].replace(np.nan, 1.0)    
     df_cut.loc[ df_cut['weightSplineTimesTune'] <= 0, 'weightSplineTimesTune' ] = 1.
-    df_cut.loc[ df_cut['weightSplineTimesTune'] == numpy.inf, 'weightSplineTimesTune' ] = 1.
+    df_cut.loc[ df_cut['weightSplineTimesTune'] == np.inf, 'weightSplineTimesTune' ] = 1.
     df_cut.loc[ df_cut['weightSplineTimesTune'] > 50, 'weightSplineTimesTune' ] = 1.
-    df_cut.loc[ numpy.isnan(df_cut['weightSplineTimesTune']) == True, 'weightSplineTimesTune' ] = 1.
+    df_cut.loc[ np.isnan(df_cut['weightSplineTimesTune']) == True, 'weightSplineTimesTune' ] = 1.
     
     return df_cut
 
@@ -129,9 +139,11 @@ def preselection_1shr(df, print_bool = False):
     # df = df.loc[df['crtveto'] != 1]
     
     # df = df.query('trk_score_v>=0 and trk_score_v<0.5 and shr_pfp_id_v<10000 and n_showers_contained_MCStool == 1', engine='python')#.index.unique(level='subentry')
-
+    if print_bool==True:
+        print('Before slice ID cut')
+        print(len(df['run']))
     df = df.loc[df['nslice'] == 1]
-
+    
     if print_bool==True:
         print('Before FV cut')
         print(len(df['run']))
@@ -244,7 +256,7 @@ def leading_shr (df):
     
     
     
-    df_temp_temp.eval('leading_shr = leading_shr_energy',inplace=True)
+    df_temp_temp['leading_shr'] = df_temp_temp['leading_shr_energy']
     #print ('Fine until here 2.5')
     #display(df_temp_temp.head(200))
     print('df')
@@ -516,6 +528,11 @@ def Selection_mc(df_dataframe,weightTune=True,signalbool=False,print_bool = Fals
         df_dataframe.loc[df_dataframe.weightTune > 50, 'weightTune'] = 1.0
         if print_bool==True:
             print (df_dataframe['weightTune'].count())
+        print('Setting weightSplineTimesTune right')
+        df_dataframe = weightTuneBool(df_dataframe)
+        if print_bool==True:
+            print (df_dataframe['weightSplineTimesTune'].count())
+        
 
     # The following is increasing the no. of events. It is as if we are organising the data more correctly by having the following cut.
     # The weird part is that it is chopping just 6 events. How could 6 events give a significant different from 15717 to 14020.
@@ -541,9 +558,9 @@ def Selection_mc(df_dataframe,weightTune=True,signalbool=False,print_bool = Fals
     if print_bool==True:
         print ('After counts<=2 cut................ ' + str(df_dataframe['nslice'].count()))
 
-    df_dataframe = df_dataframe.loc[df_dataframe['Counts'] == 2]
-    if print_bool==True:
-        print ('After counts==2 cut................ ' + str(df_dataframe['nslice'].count()))
+    # df_dataframe = df_dataframe.loc[df_dataframe['Counts'] == 2]
+    # if print_bool==True:
+    #     print ('After counts==2 cut................ ' + str(df_dataframe['nslice'].count()))
 
     df_dataframe['leading_shr_hits'] = df_dataframe['pfnhits'].groupby("entry").transform(max) == df_dataframe['pfnhits']
 
@@ -574,7 +591,6 @@ def Selection_mc(df_dataframe,weightTune=True,signalbool=False,print_bool = Fals
         print ('Before is above')
     # These two true events must have the same leading_shr_energy for run 3 signal that's why an error
     
-
     if Run3 == True:
         df_dataframe = df_dataframe[~df_dataframe.temp_ID.isin(df_temp_temp.temp_ID.values)]
     else:
@@ -698,6 +714,8 @@ def New_loader(Run, mass, nshr, KDIF_KDAR_str):
         scale_nu = scale_nu_rhc
         scale_dirt = scale_dirt_rhc
         scale_ext = scale_ext_rhc
+    elif Run == 'Run4a':
+        scale_nu = 1.0 # Need to set this once run 4a sample is ready
     # Path for old flux files
     root_dir = "/exp/uboone/data/users/jbateman/workdir/HPS_uboone_analysis/"
     main_input_dir = root_dir+"/BDT_inputs_pkl/"
