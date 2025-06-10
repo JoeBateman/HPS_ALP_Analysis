@@ -4,8 +4,8 @@
 SAMDEF=$1
 
 # Clear the output file if it exists and rewrite the file names to it
-> temp_filelist.txt
-samweb list-files "defname:$SAMDEF" > temp_filelist.txt
+> temp_filelist.list
+samweb list-files "defname:$SAMDEF" > temp_filelist.list
 
 # # Check if the sample is prestaged
 # samweb prestage-dataset --defname=$SAMDEF
@@ -21,6 +21,6 @@ while read -r line; do
     if [[ -n "$line" ]]; then
         echo "$FILEPATH/$line" >> filelist.list
     fi
-done < temp_filelist.txt
+done < temp_filelist.list
 
 hadd /exp/uboone/data/users/jbateman/workdir/HPS_uboone_analysis/Run_245_ana/"$SAMDEF.root" @filelist.list
